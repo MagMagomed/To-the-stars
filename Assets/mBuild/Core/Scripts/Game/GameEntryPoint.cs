@@ -44,6 +44,11 @@ namespace Core.Scripts.Game
                 m_coroutines.StartCoroutine(LoadAndStartGameplay());
                 return; 
             }
+            if (sceneName == Scenes.MAIN_MENU)
+            {
+                m_coroutines.StartCoroutine(LoadAndStartMainMenu());
+                return;
+            }
             if (sceneName != Scenes.BOOT) return;
 #endif
             m_coroutines.StartCoroutine(LoadAndStartGameplay());
@@ -56,13 +61,36 @@ namespace Core.Scripts.Game
             yield return LoadScene(Scenes.GAMEPLAY);
 
             yield return new WaitForSeconds(2);
-            //
-            var sceneEntryPoint = Object.FindFirstObjectByType<GameplayEntryPoint>();
-            sceneEntryPoint.Run();
 
+            var sceneEntryPoint = Object.FindFirstObjectByType<GameplayEntryPoint>();
+            sceneEntryPoint.Run(m_UIRootView);
+            //фу-фу-фу так делать не надо
+            sceneEntryPoint.GoToMainMenuSceneRequesteed += () =>
+            {
+                m_coroutines.StartCoroutine(LoadAndStartMainMenu());
+            };
+            //
             m_UIRootView.HideLoadingScene();
         }
+        private IEnumerator LoadAndStartMainMenu()
+        {
+            m_UIRootView.ShowLoadingScene();
 
+            yield return LoadScene(Scenes.BOOT);
+            yield return LoadScene(Scenes.MAIN_MENU);
+
+            yield return new WaitForSeconds(2);
+
+            var sceneEntryPoint = Object.FindFirstObjectByType<MainMenuEntryPoint>();
+            sceneEntryPoint.Run(m_UIRootView);
+            //фу-фу-фу так делать не надо
+            sceneEntryPoint.GoToGameplaySceneRequesteed += () =>
+            {
+                m_coroutines.StartCoroutine(LoadAndStartGameplay());
+            };
+            //
+            m_UIRootView.HideLoadingScene();
+        }
         private IEnumerator LoadScene(string sceneName)
         {
             yield return SceneManager.LoadSceneAsync(sceneName);
